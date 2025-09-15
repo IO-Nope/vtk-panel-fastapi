@@ -1,0 +1,37 @@
+<!DOCTYPE html>
+<html lang="zh-cn">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>FastAPI 示例</title>
+  <link rel="stylesheet" href="/static/styles.css">
+</head>
+<body>
+  <!-- 顶部横条 -->
+  <header>
+    <div class="menu-icon">
+      <div></div>
+      <div></div>
+      <div></div>
+    </div>
+    <h1>我的网站</h1>
+  </header>
+
+  <!-- 中间内容 -->
+  <main>
+    <div class="components">
+      <div id="seldrop">Seldrop</div>
+      <div id="output">Output</div>
+      <div id="vtkpane">VTK Pane</div>
+    </div>
+    <button onclick="sendData()">发送数据到后端</button>
+  </main>
+
+  <!-- 底部折线图 -->
+  <footer>
+    <canvas id="line-chart"></canvas>
+  </footer>
+
+  <script src="/static/script.js"></script>
+</body>
+</html>
