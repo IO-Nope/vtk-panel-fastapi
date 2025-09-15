@@ -5,8 +5,61 @@ import vtk
 from panel.pane import VTK
 import utils
 import io
+def Create_vtk_cone():
+    cone_source = vtk.vtkConeSource()
+    cone_source.SetHeight(1.0)
+    cone_source.SetRadius(0.5)
+    cone_source.SetResolution(32)
+    cone_source.Update()
 
-def create_vtk_cube():
+    mapper = vtk.vtkPolyDataMapper()
+    mapper.SetInputConnection(cone_source.GetOutputPort())
+
+    actor = vtk.vtkActor()
+    actor.SetMapper(mapper)
+
+    colors = vtk.vtkNamedColors()
+    actor.GetProperty().SetColor(colors.GetColor3d("LimeGreen"))
+
+    renderer = vtk.vtkRenderer()
+    renderer.AddActor(actor)
+    renderer.SetBackground(colors.GetColor3d("DarkSlateGray"))
+
+    render_window = vtk.vtkRenderWindow()
+    render_window.AddRenderer(renderer)
+
+    render_window_interactor = vtk.vtkRenderWindowInteractor()
+    render_window_interactor.SetRenderWindow(render_window)
+
+    return render_window
+def Create_vtk_sphere():
+    sphere_source = vtk.vtkSphereSource()
+    sphere_source.SetRadius(0.5)
+    sphere_source.SetThetaResolution(32)
+    sphere_source.SetPhiResolution(32)
+    sphere_source.Update()
+
+    mapper = vtk.vtkPolyDataMapper()
+    mapper.SetInputConnection(sphere_source.GetOutputPort())
+
+    actor = vtk.vtkActor()
+    actor.SetMapper(mapper)
+
+    colors = vtk.vtkNamedColors()
+    actor.GetProperty().SetColor(colors.GetColor3d("Tomato"))
+
+    renderer = vtk.vtkRenderer()
+    renderer.AddActor(actor)
+    renderer.SetBackground(colors.GetColor3d("DarkSlateGray"))
+
+    render_window = vtk.vtkRenderWindow()
+    render_window.AddRenderer(renderer)
+
+    render_window_interactor = vtk.vtkRenderWindowInteractor()
+    render_window_interactor.SetRenderWindow(render_window)
+
+    return render_window
+def Create_vtk_cube():
     cube_source = vtk.vtkCubeSource()
     cube_source.SetXLength(1.0)
     cube_source.SetYLength(1.0)
