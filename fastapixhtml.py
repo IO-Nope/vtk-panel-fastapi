@@ -15,8 +15,7 @@ templates = Jinja2Templates(directory="templates")
 # 数据模型
 class InputData(BaseModel):
     seldrop: str
-    output: str
-    vtkpane: str
+
 
 # 路由：返回 HTML 页面
 @app.get("/", response_class=HTMLResponse)
