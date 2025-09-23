@@ -8,12 +8,14 @@
 bash
 > pip install -r requirements.txt
 > uvciorn main:app 
+Or
+> ./start.bat
 ```
 
 ---
 ## branch
-- Master 主分支
-- Develop 开发分支
+- master 主分支
+- develop 开发分支
 - learn 学习分支
 
 
