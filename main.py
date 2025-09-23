@@ -3,63 +3,54 @@ from fastapi.responses import HTMLResponse
 import panel as pn
 import vtk
 from panel.pane import VTK
-import io
+import utils
+from fastapi import FastAPI, Request
+from fastapi.responses import HTMLResponse
+from fastapi.staticfiles import StaticFiles
+from fastapi.templating import Jinja2Templates
+from pydantic import BaseModel
 
-# 初始化 FastAPI 应用
 app = FastAPI()
+app.mount("/static", StaticFiles(directory="static"), name="static")
 
-# 初始化 Panel
+templates = Jinja2Templates(directory="templates")
+
 pn.extension('vtk')
 
-# 创建 VTK 场景
-def create_vtk_cube():
-    # 创建一个立方体
-    cube_source = vtk.vtkCubeSource()
-    cube_source.SetXLength(1.0)
-    cube_source.SetYLength(1.0)
-    cube_source.SetZLength(1.0)
-    cube_source.Update()
+options = ["cube", "sphere", "cone"]
+seldrop = pn.widgets.Select(name='选择几何体', options=options, value='cube')
+output = pn.widgets.StaticText(name="显示选项", value="")
 
-    # 创建 Mapper
-    mapper = vtk.vtkPolyDataMapper()
-    mapper.SetInputConnection(cube_source.GetOutputPort())
 
-    # 创建 Actor
-    actor = vtk.vtkActor()
-    actor.SetMapper(mapper)
+render_window = utils.Create_vtk_cube()
+vtk_pane = VTK(render_window)
 
-    # 设置颜色
-    colors = vtk.vtkNamedColors()
-    actor.GetProperty().SetColor(colors.GetColor3d("CornflowerBlue"))
+#外部定义静态样式
+with open("templates/index.html", "r", encoding="utf-8") as f:
+    html_template = f.read()
 
-    # 创建 Renderer
-    renderer = vtk.vtkRenderer()
-    renderer.AddActor(actor)
-    renderer.SetBackground(colors.GetColor3d("DarkSlateGray"))
+panel_app = pn.Column(templates,seldrop,output, vtk_pane)
+htmlpane = pn.pane.HTML(html_template)
 
-    # 创建 Render Window
-    render_window = vtk.vtkRenderWindow()
-    render_window.AddRenderer(renderer)
+@pn.depends(seldrop.param.value, watch=True)
+async def update_output(value):
+    output.value = f"You choose: {value}"
+    match value:
+        case "cube":
+            render_window = utils.Create_vtk_cube()
+        case "sphere":
+            render_window = utils.Create_vtk_sphere()
+        case "cone":
+            render_window = utils.Create_vtk_cone()
+    global vtk_pane
+    if vtk_pane is not None :vtk_pane.object = render_window
 
-    # 创建 Render Window Interactor
-    render_window_interactor = vtk.vtkRenderWindowInteractor()
-    render_window_interactor.SetRenderWindow(render_window)
-
-    return render_window
-
-# 创建 Panel 应用
-def create_panel_app():
-    render_window = create_vtk_cube()
-    vtk_pane = VTK(render_window)  # 使用 Panel 的 VTK Pane
-    return pn.Column("# 立方体展示", vtk_pane)
-
-panel_app = create_panel_app()
-
-# FastAPI 路由：嵌入 Panel 应用
 @app.get("/panel", response_class=HTMLResponse)
 def serve_panel():
-    html_buffer = io.StringIO()
-    panel_app.save(html_buffer, embed=True)
-    html_content = html_buffer.getvalue()
-    html_buffer.close()
+    html_content = utils.Tohtml(panel_app)
     return HTMLResponse(content=html_content)
+
+@app.get("/html", response_class=HTMLResponse)
+async def read_html(request: Request):
+    return templates.TemplateResponse("index.html", {"request": request})
+

@@ -18,7 +18,7 @@ class InputData(BaseModel):
 
 
 # 路由：返回 HTML 页面
-@app.get("/", response_class=HTMLResponse)
+@app.get("/html", response_class=HTMLResponse)
 async def read_root(request: Request):
     return templates.TemplateResponse("index.html", {"request": request})
 
