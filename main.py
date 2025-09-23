@@ -1,5 +1,6 @@
 from fastapi import FastAPI
 from fastapi.responses import HTMLResponse
+from fastapi.staticfiles import StaticFiles
 import panel as pn
 import vtk
 from panel.pane import VTK
@@ -7,6 +8,8 @@ import utils
 import io
 
 app = FastAPI()
+app.mount("/static", StaticFiles(directory="static"), name="static")
+html_context = utils.Read_template()
 
 pn.extension('vtk')
 
@@ -17,7 +20,12 @@ output = pn.widgets.StaticText(name="显示选项", value="")
 
 render_window = utils.Create_vtk_cube()
 vtk_pane = VTK(render_window)
- 
+
+html_panel = html_context.replace(
+    '<div id="panel-app"></div>',
+    utils.To_html(seldrop)+utils.To_html(output)
+)
+
 
 panel_app = pn.Column(seldrop,output, vtk_pane)
 
@@ -36,8 +44,8 @@ async def update_output(value):
 
 @app.get("/panel", response_class=HTMLResponse)
 def serve_panel():
-    html_buffer = io.StringIO()
-    panel_app.save(html_buffer, embed=True)
-    html_content = html_buffer.getvalue()
-    html_buffer.close()
-    return HTMLResponse(content=html_content)
+    return HTMLResponse(utils.To_html(panel_app))
+
+@app.get("/html", response_class=HTMLResponse)
+def serve_html():
+    return HTMLResponse(html_panel)

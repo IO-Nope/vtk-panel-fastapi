@@ -27,7 +27,8 @@ def Create_vtk_cone():
 
     render_window = vtk.vtkRenderWindow()
     render_window.AddRenderer(renderer)
-
+    render_window.SetOffScreenRendering(1) 
+    
     render_window_interactor = vtk.vtkRenderWindowInteractor()
     render_window_interactor.SetRenderWindow(render_window)
 
@@ -54,6 +55,7 @@ def Create_vtk_sphere():
 
     render_window = vtk.vtkRenderWindow()
     render_window.AddRenderer(renderer)
+    render_window.SetOffScreenRendering(1) 
 
     render_window_interactor = vtk.vtkRenderWindowInteractor()
     render_window_interactor.SetRenderWindow(render_window)
@@ -81,8 +83,21 @@ def Create_vtk_cube():
 
     render_window = vtk.vtkRenderWindow()
     render_window.AddRenderer(renderer)
+    render_window.SetOffScreenRendering(1) 
 
     render_window_interactor = vtk.vtkRenderWindowInteractor()
     render_window_interactor.SetRenderWindow(render_window)
 
     return render_window
+
+def To_html(panel_app):
+    html_buffer = io.StringIO()
+    panel_app.save(html_buffer, embed=True)
+    html_content = html_buffer.getvalue()
+    html_buffer.close()
+    return html_content
+
+def Read_template(path="templates/index.html"):
+    with open(path, "r", encoding="utf-8") as f:
+        html_content = f.read()
+    return html_content
