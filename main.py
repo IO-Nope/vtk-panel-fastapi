@@ -6,7 +6,7 @@ from fastapi.responses import RedirectResponse
 import vtk
 from panel.pane import VTK
 import utils
-import io
+import vtk_core
 
 app = FastAPI()
 
@@ -14,10 +14,12 @@ pn.extension('vtk')
 
 options = ["cube", "sphere", "cone"]
 seldrop = pn.widgets.Select(name='选择几何体', options=options, value='cube')
-output = pn.widgets.StaticText(name="显示选项", value="")
+output = pn.widgets.StaticText(name="显示选项", value="显示立方体")
 
-render_window = utils.Create_vtk_cube()
+render_window = vtk_core.VtkManager.Create_vtk('cube')
 vtk_pane = VTK(render_window)
+
+
 
 
 template = pn.template.FastListTemplate(
@@ -35,15 +37,14 @@ pn.serve(
 
 @pn.depends(seldrop.param.value,watch=True)
 async def update_vtk(value):
-    render_ = utils.Create_vtk_cube()
     if value == "cube":
-        render_ = utils.Create_vtk_cube()
+        render_ = vtk_core.VtkManager.Create_vtk('cube')
         output.value = "显示立方体"
     elif value == "sphere":
-        render_ = utils.Create_vtk_sphere()
+        render_ = vtk_core.VtkManager.Create_vtk('sphere')
         output.value = "显示球体"
     elif value == "cone":
-        render_ = utils.Create_vtk_cone()
+        render_ = vtk_core.VtkManager.Create_vtk('cone')
         output.value = "显示圆锥体"
     if vtk_pane is not None : 
         vtk_pane.object = render_
