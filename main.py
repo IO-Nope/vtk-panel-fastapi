@@ -19,12 +19,17 @@ output = pn.widgets.StaticText(name="显示选项", value="显示立方体")
 render_window = vtk_core.VtkManager.Create_vtk('cube')
 vtk_pane = VTK(render_window)
 
+directory = pn.widgets.RadioButtonGroup(
+    name="目录",
+    options=["主页", "几何体选择", "关于"],
+    button_type="success"
+)
 
 
 
 template = pn.template.FastListTemplate(
     title="VTK SHOW",
-    sidebar=[seldrop, output],
+    sidebar=[directory],
     main=[vtk_pane],
 )
 
