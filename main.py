@@ -1,56 +1,60 @@
 from fastapi import FastAPI
 from fastapi.responses import HTMLResponse
+from fastapi.staticfiles import StaticFiles
 import panel as pn
+from fastapi.responses import RedirectResponse
 import vtk
 from panel.pane import VTK
 import utils
-from fastapi import FastAPI, Request
-from fastapi.responses import HTMLResponse
-from fastapi.staticfiles import StaticFiles
-from fastapi.templating import Jinja2Templates
-from pydantic import BaseModel
+import vtk_core
 
 app = FastAPI()
-app.mount("/static", StaticFiles(directory="static"), name="static")
-
-templates = Jinja2Templates(directory="templates")
 
 pn.extension('vtk')
 
 options = ["cube", "sphere", "cone"]
 seldrop = pn.widgets.Select(name='选择几何体', options=options, value='cube')
-output = pn.widgets.StaticText(name="显示选项", value="")
+output = pn.widgets.StaticText(name="显示选项", value="显示立方体")
 
-
-render_window = utils.Create_vtk_cube()
+render_window = vtk_core.VtkManager.Create_vtk('cube')
 vtk_pane = VTK(render_window)
 
-#外部定义静态样式
-with open("templates/index.html", "r", encoding="utf-8") as f:
-    html_template = f.read()
+directory = pn.widgets.RadioButtonGroup(
+    name="目录",
+    options=["主页", "几何体选择", "关于"],
+    button_type="success"
+)
 
-panel_app = pn.Column(templates,seldrop,output, vtk_pane)
-htmlpane = pn.pane.HTML(html_template)
 
-@pn.depends(seldrop.param.value, watch=True)
-async def update_output(value):
-    output.value = f"You choose: {value}"
-    match value:
-        case "cube":
-            render_window = utils.Create_vtk_cube()
-        case "sphere":
-            render_window = utils.Create_vtk_sphere()
-        case "cone":
-            render_window = utils.Create_vtk_cone()
-    global vtk_pane
-    if vtk_pane is not None :vtk_pane.object = render_window
+
+template = pn.template.FastListTemplate(
+    title="VTK SHOW",
+    sidebar=[directory],
+    main=[vtk_pane],
+)
+
+pn.serve(
+    template,
+    port=5006,
+    allow_websocket_origin=["127.0.0.1:5006", "localhost:5006"],  
+    show=True,
+    )
+
+@pn.depends(seldrop.param.value,watch=True)
+async def update_vtk(value):
+    if value == "cube":
+        render_ = vtk_core.VtkManager.Create_vtk('cube')
+        output.value = "显示立方体"
+    elif value == "sphere":
+        render_ = vtk_core.VtkManager.Create_vtk('sphere')
+        output.value = "显示球体"
+    elif value == "cone":
+        render_ = vtk_core.VtkManager.Create_vtk('cone')
+        output.value = "显示圆锥体"
+    if vtk_pane is not None : 
+        vtk_pane.object = render_
+
 
 @app.get("/panel", response_class=HTMLResponse)
 def serve_panel():
-    html_content = utils.Tohtml(panel_app)
-    return HTMLResponse(content=html_content)
-
-@app.get("/html", response_class=HTMLResponse)
-async def read_html(request: Request):
-    return templates.TemplateResponse("index.html", {"request": request})
-
+    return RedirectResponse(url="http://127.0.0.1:5006")
