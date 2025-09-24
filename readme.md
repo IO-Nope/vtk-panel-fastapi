@@ -17,7 +17,8 @@ Or
 - master 主分支
 - develop 开发分支
 - learn 学习分支
-
+- dev-panel 纯panel前端分支
+> 我意识到html+panel可能有点蠢
 
 
 
