@@ -92,7 +92,7 @@ def Create_vtk_cube():
 
 def To_html(panel_app):
     html_buffer = io.StringIO()
-    panel_app.save(html_buffer, embed=True)
+    panel_app.save(html_buffer, embed=False)
     html_content = html_buffer.getvalue()
     html_buffer.close()
     return html_content
@@ -101,3 +101,14 @@ def Read_template(path="templates/index.html"):
     with open(path, "r", encoding="utf-8") as f:
         html_content = f.read()
     return html_content
+
+def hex_to_rgb(hex_color:str):
+    hex_color = hex_color.lstrip('#')
+    lv = len(hex_color)
+    return tuple(int(hex_color[i:i + lv // 3], 16) / 255.0 for i in range(0, lv, lv // 3))
+
+def rgb_to_hex(rgb_color:tuple):
+    return '#%02x%02x%02x' % (int(rgb_color[0]*255), int(rgb_color[1]*255), int(rgb_color[2]*255))
+
+def show_type(obj):
+    print(type(obj))

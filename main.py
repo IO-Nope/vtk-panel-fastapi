@@ -1,10 +1,14 @@
+from bokeh.core.enums import SizingMode
 from fastapi import FastAPI
 from fastapi.responses import HTMLResponse
 from fastapi.staticfiles import StaticFiles
 import panel as pn
 from fastapi.responses import RedirectResponse
+from param.parameterized import instance_descriptor
 import vtk
 from panel.pane import VTK
+import vtkmodules
+import vtkmodules.vtkRenderingCore
 import utils
 import vtk_core
 
@@ -13,23 +17,21 @@ app = FastAPI()
 pn.extension('vtk')
 
 options = ["cube", "sphere", "cone"]
-seldrop = pn.widgets.Select(name='选择几何体', options=options, value='cube')
-output = pn.widgets.StaticText(name="显示选项", value="显示立方体")
+
 
 render_window = vtk_core.VtkManager.Create_vtk('cube')
-vtk_pane = VTK(render_window)
+vtk_pane = pn.pane.VTK(render_window,sizing_mode='stretch_both',height=600)
 
-directory = pn.widgets.RadioButtonGroup(
-    name="目录",
-    options=["主页", "几何体选择", "关于"],
-    button_type="success"
-)
+seldrop = pn.widgets.Select(name='选择几何体', options=options, value='cube')
+output = pn.widgets.StaticText(name="显示选项", value="显示立方体")
+colorpicker = pn.widgets.ColorPicker(name='背景颜色', value='#99ef78')
 
+vtk_pane.get_renderer().SetBackground(utils.hex_to_rgb('#99ef78')) #type:ignore
 
 
 template = pn.template.FastListTemplate(
     title="VTK SHOW",
-    sidebar=[directory],
+    sidebar=[seldrop,output,colorpicker],
     main=[vtk_pane],
 )
 
@@ -37,11 +39,11 @@ pn.serve(
     template,
     port=5006,
     allow_websocket_origin=["127.0.0.1:5006", "localhost:5006"],  
-    show=True,
+    show=False,
     )
 
 @pn.depends(seldrop.param.value,watch=True)
-async def update_vtk(value):
+def update_vtk(value):
     if value == "cube":
         render_ = vtk_core.VtkManager.Create_vtk('cube')
         output.value = "显示立方体"
@@ -53,7 +55,16 @@ async def update_vtk(value):
         output.value = "显示圆锥体"
     if vtk_pane is not None : 
         vtk_pane.object = render_
+        update_bgcolor(colorpicker.value)
 
+
+@pn.depends(colorpicker.param.value,watch=True)
+def update_bgcolor(value):
+    assert isinstance(vtk_pane, pn.pane.vtk.vtk.VTKRenderWindowSynchronized)
+    render =  vtk_pane.get_renderer()
+    assert isinstance(render, vtkmodules.vtkRenderingCore.vtkRenderer)
+    render.SetBackground(utils.hex_to_rgb(value))
+    vtk_pane.param.trigger('object') #显式更新
 
 @app.get("/panel", response_class=HTMLResponse)
 def serve_panel():
