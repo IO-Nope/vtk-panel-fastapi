@@ -12,15 +12,15 @@ app = FastAPI()
 pn.extension('vtk', design='material', sizing_mode='stretch_width', template='material')
 
 assert pn.state.template is not None
-
 pn.state.template.config.raw_css.append(""" 
 #main {
   padding: 0;
 }""") #type: ignore
 
+# 下载并标量化数据集
 m = examples.download_st_helens().warp_by_scalar() # type: ignore
 
-# default camera position
+# 默认相机位置
 cpos = [
     (567000.9232163235, 5119147.423216323, 6460.423216322832),
     (562835.0, 5114981.5, 2294.5),
