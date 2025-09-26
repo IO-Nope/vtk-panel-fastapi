@@ -1,9 +1,11 @@
+from PIL.Image import init
 from bokeh.core.enums import SizingMode
 from fastapi import FastAPI
 from fastapi.responses import HTMLResponse
 from fastapi.staticfiles import StaticFiles
 import panel as pn
 from fastapi.responses import RedirectResponse
+from panel.io.document import init_doc
 from param.parameterized import instance_descriptor
 import vtk
 from panel.pane import VTK
@@ -22,6 +24,16 @@ options = ["cube", "sphere", "cone"]
 
 
 render_window = vtk_core.VtkManager.Create_vtk('cube')
+renderer = list(render_window.GetRenderers())[0] #type:ignore 不可迭代你大坝pylance
+assert isinstance(renderer, vtkmodules.vtkRenderingCore.vtkRenderer)
+initial_camera = renderer.GetActiveCamera()
+renderer.ResetCamera()
+initial_pos = {
+    'position': initial_camera.GetPosition(),
+    'focal_point': initial_camera.GetFocalPoint(),
+    'view_up': initial_camera.GetViewUp()
+}
+print(initial_pos)
 vtk_pane = pn.pane.VTK(render_window,sizing_mode='stretch_both')
 
 seldrop = pn.widgets.Select(name='选择几何体', options=options, value='cube')
@@ -48,10 +60,11 @@ def update_vtk(value):
         render_ = vtk_core.VtkManager.Create_vtk('cone')
         output.value = "显示圆锥体"
     if vtk_pane is not None : 
+        # 替换渲染颜色 让切换更丝滑
+        renderer = list(render_.GetRenderers())[0] #type:ignore
+        assert isinstance(renderer, vtkmodules.vtkRenderingCore.vtkRenderer)
+        renderer.SetBackground(utils.hex_to_rgb(colorpicker.value)) #type:ignore
         vtk_pane.object = render_
-        vtk_pane.get_renderer().SetBackground(utils.hex_to_rgb(colorpicker.value)) #type:ignore
-        time.sleep(0.01) #两次更新之间需要等待一会 不然会无法显示
-        vtk_pane.param.trigger('object')
         
 
 def reset_camera(event):
@@ -59,7 +72,7 @@ def reset_camera(event):
         assert isinstance(vtk_pane, pn.pane.vtk.vtk.VTKRenderWindowSynchronized)
         renderer = vtk_pane.get_renderer()
         assert isinstance(renderer, vtkmodules.vtkRenderingCore.vtkRenderer)
-        renderer.ResetCamera()
+        vtk_pane.camera = initial_pos
         vtk_pane.param.trigger('object')
 buttonReC.on_click(reset_camera)
 

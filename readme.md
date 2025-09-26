@@ -7,6 +7,7 @@
 ```
 bash
 > pip install -r requirements.txt
+Then
 > uvciorn main:app 
 Or
 > ./start.bat

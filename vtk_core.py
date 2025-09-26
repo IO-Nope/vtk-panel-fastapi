@@ -44,6 +44,16 @@ class VtkManager:
             
     
     @classmethod
+    def Get_type(cls,type:str):
+        instance = cls.Instance()
+        res = instance.__dicpool.get(type,None)
+        if res is  None:
+            print("Warning: vtk_core pool type not found ")
+        return res
+        
+        
+
+    @classmethod
     def Create_vtk(cls,type = 'cube'):
         instance = cls.Instance()
         if type in instance.__dicpool:
