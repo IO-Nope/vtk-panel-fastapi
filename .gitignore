@@ -1,0 +1,8 @@
+
+myenv/
+.vscode/
+__pycache__/
+*.pptx
+.idea/
+jupyter.ipynb
+learn/
