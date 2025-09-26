@@ -3,7 +3,7 @@ from fastapi.responses import HTMLResponse
 import panel as pn
 import vtk
 from panel.pane import VTK
-import utils
+from .. import utils
 from fastapi import FastAPI, Request
 from fastapi.responses import HTMLResponse
 from fastapi.staticfiles import StaticFiles
