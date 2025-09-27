@@ -126,3 +126,4 @@ def div_factor(n:int):
 def Dprint(*args, **kwargs):
     if isDebug:
         print(*args, **kwargs)
+
