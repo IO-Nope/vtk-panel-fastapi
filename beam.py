@@ -1,0 +1,238 @@
+import re
+from fastapi import FastAPI, background
+from fastapi.responses import HTMLResponse
+from numpy import isin
+import panel as pn
+from fastapi.responses import RedirectResponse
+from panel.pane.vtk.vtk import VTKRenderWindowSynchronized
+from panel.widgets.speech_to_text import Language
+import vtk
+import vtkmodules
+import vtkmodules.vtkRenderingCore
+import utils
+from utils import Dprint
+import vtk_core
+from typing import Optional
+import time
+
+app = FastAPI()
+
+pn.extension('vtk')
+
+page = pn.template.FastListTemplate(title = "梁加载破坏可视化")
+vtk_pane = pn.pane.VTK(vtk_core.VtkManager.Create_vtk(type='cube',length=5.0,width=0.5,height=0.5),sizing_mode='stretch_both')
+
+
+
+#region sidebar
+#region 全局变量
+renderer = vtk_pane.object.GetRenderers().GetFirstRenderer() #type:ignore
+assert isinstance(renderer, vtkmodules.vtkRenderingCore.vtkRenderer)
+initial_camera = renderer.GetActiveCamera()
+
+init_cam_pos = {
+    'position': (10, 0, 0),
+    'focal_point': (5 / 2, 0.5 / 2, 0),
+    'view_up': (0, 1, 0)
+}
+
+assert isinstance(vtk_pane, VTKRenderWindowSynchronized)
+vtk_pane.camera = init_cam_pos
+
+init_actor_pos : Optional[dict[str,tuple[float,float,float]]] = None
+
+last_beam_size = [5.0,0.5,0.5]
+
+
+
+
+#endregion
+#region 功能栏
+#region 必要参数
+width_input = pn.widgets.FloatInput(name="宽度/m", value=0.5, step=0.1,sizing_mode='stretch_width')
+length_input = pn.widgets.FloatInput(name="跨度/m", value=5.0, step=1,sizing_mode='stretch_width')
+height_input = pn.widgets.FloatInput(name="梁高/m", value=0.5, step=0.1,sizing_mode='stretch_width')
+density_input = pn.widgets.FloatInput(name="重度/kN/m^2", value=25.0, step=1,sizing_mode='stretch_width')
+E_input = pn.widgets.FloatInput(name="弹性模量/MPa", value=20000.0, step=1000,sizing_mode='stretch_width')
+factor_input = pn.Column(
+    pn.Row(length_input, height_input,width_input,sizing_mode='stretch_width'),
+    pn.Row(density_input,E_input,sizing_mode='stretch_width'),
+)
+
+#endregion
+#region 功能按钮
+buttonGen = pn.widgets.Button(name = '生成',sizing_mode='stretch_width')
+buttonProcess = pn.widgets.Button(name = '开始加载',sizing_mode='stretch_width')
+buttonStopKeepon = pn.widgets.Button(name = '停止/继续',sizing_mode='stretch_width')
+buttonReset = pn.widgets.Button(name = '重置',sizing_mode='stretch_width')
+buttonRow = pn.Column(
+    buttonGen,
+    pn.Row(buttonProcess,buttonStopKeepon,sizing_mode='stretch_width'),
+    buttonReset,
+    sizing_mode='stretch_width'
+)
+
+#endregion
+#region 回调函数
+
+def gen_vtk(event):
+    #To Do:计算需要的参数 生成vtk图像
+    global vtk_pane
+    global init_cam_pos
+    global last_beam_size
+
+
+    W = width_input.value
+    L = length_input.value
+    H = height_input.value
+    assert isinstance(L, (int,float))
+    assert isinstance(H, (int,float))
+    assert isinstance(W, (int,float))
+    #pylance闹麻
+
+    for i in range(3):
+        if last_beam_size[i] != [L,H,W][i]:
+            break
+    else:
+        #Todo: 告诉用户没有修改参数
+        return
+    
+    last_beam_size = [L,H,W]
+    
+
+    render_window = vtk_core.VtkManager.Create_cube(length=W,width=L,height=H)
+   
+    # ToDo : 添加加载力的箭头 这里的实现不行
+   
+
+    assert isinstance(page.main,pn.layout.base.ListLike)
+    render_window.GetRenderers().GetFirstRenderer().SetBackground(utils.hex_to_rgb(background_colorpick.value)) #type:ignore
+    assert isinstance(vtk_pane, VTKRenderWindowSynchronized)
+    vtk_pane.object = render_window
+    time.sleep(0.1) #等待渲染器更新
+    reset_camera(None)
+    #To Do:刷新！为什么不能做到！
+
+buttonGen.on_click(gen_vtk)
+
+def flash_vtk(event):
+    global vtk_pane
+    if vtk_pane is not None:
+        vtk_pane.param.trigger('object') #type:ignore
+
+def reset_vtk(event):
+    global vtk_pane
+    global init_cam_pos
+    if vtk_pane is None:
+        #To Do:提示用户先生成
+        return
+    assert isinstance(vtk_pane, VTKRenderWindowSynchronized)
+    
+buttonReset.on_click(reset_vtk)
+
+
+
+#endregion
+functionTab = pn.Column(
+    factor_input,
+    buttonRow,
+)
+#endregion
+#region 视图栏
+
+#region 视图
+background_colorpick = pn.widgets.ColorPicker(name='背景颜色', value='#FFFFFF',sizing_mode='stretch_width')
+button_camera_reset = pn.widgets.Button(name = '重置摄像机',sizing_mode='stretch_width')
+
+
+#endregion
+
+#region developtab
+button_print_camera_pos = pn.widgets.Button(name = '打印摄像机位置',sizing_mode='stretch_width')
+
+#region 回调函数
+
+def print_camera_pos(event):
+    global vtk_pane
+    if vtk_pane is None:
+        #To Do: 提示没有vtk对象
+        return
+    assert isinstance(vtk_pane, VTKRenderWindowSynchronized)
+    camera = vtk_pane.camera
+    assert isinstance(camera, dict)
+    Dprint("摄像机位置:")
+    Dprint(f"position: {camera['position']}")
+    Dprint(f"focal_point: {camera['focal_point']}")
+    Dprint(f"view_up: {camera['view_up']}")
+
+button_print_camera_pos.on_click(print_camera_pos)
+
+#endregion
+
+devtab = pn.Column(
+    button_print_camera_pos,
+)
+#endregion
+
+viewTab = pn.Column(
+    button_camera_reset,
+    background_colorpick,
+)
+
+#endregion
+#region 回调函数
+@pn.depends(background_colorpick.param.value,watch=True)
+def set_vtkbackground_color(value):
+    global vtk_pane
+    if vtk_pane is None:
+        #Todo: 提示没有vtk对象
+        return
+    assert isinstance(vtk_pane, VTKRenderWindowSynchronized)
+    render =  vtk_pane.get_renderer()
+    assert isinstance(render, vtkmodules.vtkRenderingCore.vtkRenderer)
+    render.SetBackground(utils.hex_to_rgb(value)) #type:ignore
+    vtk_pane.param.trigger('object') #显式更新
+
+def reset_camera(event):
+    global vtk_pane
+    if vtk_pane is None:
+        #To Do:提示用户先生成
+        return
+    assert isinstance(vtk_pane, VTKRenderWindowSynchronized)
+    vtk_pane.camera = init_cam_pos
+    vtk_pane.param.trigger('object')
+
+button_camera_reset.on_click(reset_camera)
+
+#endregion
+assert isinstance(page.sidebar,pn.layout.base.ListLike)
+page.sidebar.append(
+    pn.Tabs(
+        ('功能', functionTab),
+        ('视图', viewTab),
+        ('开发功能', devtab)
+    )
+)
+
+#endregion
+
+#region main(template)
+
+assert isinstance(page.main,pn.layout.base.ListLike)
+page.main.append(
+    vtk_pane
+)
+#rendregion
+
+page.servable()
+
+pn.serve(
+    page,
+    port=5006,
+    allow_websocket_origin=["127.0.0.1:5006", "localhost:5006"],  
+    show=False,
+    )
+
+@app.get("/panel")
+def serve_panel():
+    return RedirectResponse(url="http://127.0.0.1:5006")

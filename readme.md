@@ -8,9 +8,13 @@
 bash
 > pip install -r requirements.txt
 Then
-> uvciorn main:app 
+> uvicorn main:app --reload
 Or
 > ./start.bat
+```
+如果是梁加载
+```
+> uvicorn beam:app  --reload
 ```
 
 ---
@@ -34,9 +38,16 @@ Or
 - [x] 做到更好的样式编辑 提前写好css+html然后嵌入panel
 > 在已经定义好的静态或者加js，css的html文件里提前打好标识，然后runtime替换
 - [ ] 实现一个在线生成各种3d模型并编辑的网站
-> 纯panel实现 在分支dev-panel里
+    > 纯panel实现 在分支dev-panel里
+    - [x] 实现一个简单3d模型展示
+    - [ ] 实现一个可以自己·输入简支梁参数,包括
+        - 长度L
+        - 高度H
+        - 弹性模量E
+        - 均布荷载q
+        - 单元数量N
 - [ ] 一个展示各种函数的教程页面
-> panel杂交html实现 在分支develop里
+    > panel杂交html实现 在分支develop里
 
 ---
 
@@ -44,3 +55,4 @@ Or
 - [ ] 在静态html中替换panel生成的html会导致panel的回调和响应函数无作用
 - [x] 并发访问生成vtk对象会导致资源占用爆错
 > 多次调用 并发调用时 单独编写单例模式来统一规定vtk对象的渲染行为
+- [ ] 重置摄像机实则也需要重置actor对象 不然位置不对

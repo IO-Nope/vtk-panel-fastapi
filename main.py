@@ -1,5 +1,3 @@
-from PIL.Image import init
-from bokeh.core.enums import SizingMode
 from fastapi import FastAPI
 from fastapi.responses import HTMLResponse
 from fastapi.staticfiles import StaticFiles
@@ -13,8 +11,7 @@ import vtkmodules
 import vtkmodules.vtkRenderingCore
 import utils
 import vtk_core
-import time
-import httpx
+
 
 app = FastAPI()
 
@@ -33,7 +30,6 @@ initial_pos = {
     'focal_point': initial_camera.GetFocalPoint(),
     'view_up': initial_camera.GetViewUp()
 }
-print(initial_pos)
 vtk_pane = pn.pane.VTK(render_window,sizing_mode='stretch_both')
 
 seldrop = pn.widgets.Select(name='选择几何体', options=options, value='cube')
@@ -105,4 +101,4 @@ pn.serve(
 
 @app.get("/panel")
 def serve_panel():
-    return RedirectResponse(url="http://127.0.0.1:5006")\
+    return RedirectResponse(url="http://127.0.0.1:5006")

@@ -1,7 +1,8 @@
+from pooch import create
 import vtk
 import utils
 from queue import Queue
-
+import vtkmodules.vtkRenderingCore
 
 # vtk有时会资源复用爆错 ，所以用单例模式管理
 class VtkManager:
@@ -51,21 +52,66 @@ class VtkManager:
             print("Warning: vtk_core pool type not found ")
         return res
         
-        
+    @classmethod
+    def Create_cube(cls,length=5.0,width=5.0,height=5.0):
+        instance = cls.Instance()
+        W = length
+        L = width
+        H = height
+        #pylance闹麻
+
+        #region 生成vtk对象
+        # 渲染器
+        renderer = vtkmodules.vtkRenderingCore.vtkRenderer()
+
+        # 梁的几何模型数据
+        beam_source = vtk.vtkCubeSource()
+
+        beam_source.SetXLength(L)
+        beam_source.SetYLength(H)
+        beam_source.SetZLength(W)
+        beam_source.Update()
+
+        # 创建梁的映射器和演员
+        beam_mapper = vtk.vtkPolyDataMapper()
+        beam_mapper.SetInputConnection(beam_source.GetOutputPort())
+
+        beam_actor = vtk.vtkActor()
+        beam_actor.SetMapper(beam_mapper)
+        beam_actor.GetProperty().SetColor(0.8, 0.8, 0.8)  
+        # 将梁添加到渲染器
+        renderer.AddActor(beam_actor)
+
+        # 设置背景颜色
+        renderer.SetBackground(1, 1, 1)  # 白色背景
+
+        # 创建 VTK 渲染窗口
+        render_window = vtkmodules.vtkRenderingCore.vtkRenderWindow()
+        render_window.AddRenderer(renderer)
+
+        # 创建 VTK 渲染窗口交互器
+        render_window_interactor = vtkmodules.vtkRenderingCore.vtkRenderWindowInteractor()
+        render_window_interactor.SetRenderWindow(render_window)
+
+        return render_window
 
     @classmethod
-    def Create_vtk(cls,type = 'cube'):
+    def Create_vtk(cls,type = 'Any',length=5.0,width=5.0,height=5.0,radius=5.0):
         instance = cls.Instance()
         if type in instance.__dicpool:
             return instance.__dicpool[type]
         if len(instance.__dicpool) >= instance.__maxobject:
             logout = cls.__logout.get()
             instance.__dicpool.pop(logout)
-        if type == 'cone':
-            render_window = utils.Create_vtk_cone()
-        elif type == 'sphere':
-            render_window = utils.Create_vtk_sphere()
-        else:
-            render_window = utils.Create_vtk_cube()
+        match type:
+
+            case 'cone':
+                render_window = utils.Create_vtk_cone()
+            case 'sphere':
+                render_window = utils.Create_vtk_sphere()
+            case 'cube':
+                render_window = instance.Create_cube(length,width,height)
+            case any:
+                render_window = instance.Create_cube()
         instance.__dicpool[type] = render_window
         return render_window

@@ -1,3 +1,4 @@
+import re
 from fastapi import FastAPI
 from fastapi.responses import HTMLResponse
 import panel as pn
@@ -5,6 +6,12 @@ import vtk
 from panel.pane import VTK
 import utils
 import io
+
+global isDebug
+isDebug = True
+
+
+
 def Create_vtk_cone():
     cone_source = vtk.vtkConeSource()
     cone_source.SetHeight(1.0)
@@ -112,3 +119,10 @@ def rgb_to_hex(rgb_color:tuple):
 
 def show_type(obj):
     print(type(obj))
+
+def div_factor(n:int):
+    return n+1/4*n
+
+def Dprint(*args, **kwargs):
+    if isDebug:
+        print(*args, **kwargs)
