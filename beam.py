@@ -104,6 +104,10 @@ def gen_vtk(event):
    
     # ToDo : 添加加载力的箭头 这里的实现不行
    
+    #Issue: 这里本来是先判断page.main[0]是否为vtkrenderwindowsynchronized的 
+    #然后page.main.clear()再 page.main.append(vtk_pane)
+    #点击按钮后页面不更新
+    #尝试过手动trigger page.param.trigger('main') , vtk_pane.param.trigger('object')，  page.serable() 都没效果
 
     assert isinstance(page.main,pn.layout.base.ListLike)
     render_window.GetRenderers().GetFirstRenderer().SetBackground(utils.hex_to_rgb(background_colorpick.value)) #type:ignore
@@ -222,7 +226,14 @@ assert isinstance(page.main,pn.layout.base.ListLike)
 page.main.append(
     vtk_pane
 )
-#rendregion
+# Issue: 在这里添加markdown先占据main 先不加vtk_pane
+# page.main.append(
+#     pn.pane.Markdown("""
+# # <center> 请在左边仪表盘生成对象    
+#                      """)
+# )
+
+#endregion
 
 page.servable()
 
