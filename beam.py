@@ -293,8 +293,21 @@ server = pn.serve(
 server.start()
 
 @app.get("/visualbeam")
-def serve_panel():
-    pass
+def serve_root():
+    html = """
+    <!DOCTYPE html>
+    <html lang="en">
+    <head>
+        <meta charset="UTF-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1.0">
+        <title>Panel App</title>
+    </head>
+    <body>
+        <iframe src="http://localhost:5006" width="100%" height="800px" frameborder="0"></iframe>
+    </body>
+    </html>
+    """
+    return HTMLResponse(content=html)
     
 
 #redregion

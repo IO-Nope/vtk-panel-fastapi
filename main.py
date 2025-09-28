@@ -99,6 +99,19 @@ pn.serve(
     show=False,
     )
 
-@app.get("/panel")
-def serve_panel():
-    return RedirectResponse(url="http://127.0.0.1:5006")
+@app.get("/visualbeam")
+def serve_root():
+    html = """
+    <!DOCTYPE html>
+    <html lang="en">
+    <head>
+        <meta charset="UTF-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1.0">
+        <title>Panel App</title>
+    </head>
+    <body>
+        <iframe src="http://localhost:5006" width="100%" height="100%" frameborder="0"></iframe>
+    </body>
+    </html>
+    """
+    return HTMLResponse(content=html)
