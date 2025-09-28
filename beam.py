@@ -8,6 +8,7 @@ from fastapi.responses import RedirectResponse
 from panel.io import notifications
 from panel.io.notifications import NotificationAreaBase
 from panel.pane.vtk.vtk import VTKRenderWindowSynchronized
+from panel.template import DarkTheme
 from panel.widgets.speech_to_text import Language
 import vtk
 import vtkmodules
@@ -18,8 +19,9 @@ import vtk_core
 from typing import Optional
 import time
 import math
+from panel.io.server import get_server
 
-app = FastAPI()
+
 #region 初始panel设置
 pn.extension('vtk',notifications=True)
 assert isinstance(pn.state.notifications, NotificationAreaBase)
@@ -49,11 +51,8 @@ renderer = vtk_pane.object.GetRenderers().GetFirstRenderer() #type:ignore
 assert isinstance(renderer, vtkmodules.vtkRenderingCore.vtkRenderer)
 initial_camera = renderer.GetActiveCamera()
 
-init_cam_pos = {
-    'position': (10, 0, 0),
-    'focal_point': (5 / 2, 0.5 / 2, 0),
-    'view_up': (0, 1, 0)
-}
+init_cam_pos = {'position': [10, 0, 0], 'focalPoint': [0, 0, 0], 'viewUp': [0, 1, 0], 'parallelProjection': False, 'useHorizontalViewAngle': False, 'viewAngle': 30, 'parallelScale': 1, 'clippingRange': [9.353450634738618, 10.837993045215962], 'windowCenter': [0, 0], 'useOffAxisProjection': False, 'screenBottomLeft': [-0.5, -0.5, -0.5], 'screenBottomRight': [0.5, -0.5, -0.5], 'screenTopRight': [0.5, 0.5, -0.5], 'freezeFocalPoint': False, 'projectionMatrix': None, 'viewMatrix': None, 'physicalTranslation': [0, 0, 0], 'physicalScale': 1, 'physicalViewUp': [0, 1, 0], 'physicalViewNorth': [0, 0, -1], 'mtime': 1010, 'remoteId': '0000018facbaa370', 'distance': 10, 'focal_point': [2.5, 0.25, 0], 'view_up': [0, 1, 0]}
+
 
 assert isinstance(vtk_pane, VTKRenderWindowSynchronized)
 vtk_pane.camera = init_cam_pos
@@ -62,8 +61,7 @@ init_actor_pos : Optional[dict[str,tuple[float,float,float]]] = None
 
 last_beam_size = [5.0,0.5,0.5]
 
-
-
+precision = 5  
 
 #endregion
 #region 功能栏
@@ -122,7 +120,7 @@ def gen_vtk(event):
     last_beam_size = [L,H,W]
     
 
-    render_window = vtk_core.VtkManager.Create_cube(length=W,width=L,height=H)
+    render_window = vtk_core.VtkManager.Create_cube(length=L,width=W,height=H)
    
     #Issue: 这里本来是先判断page.main[0]是否为vtkrenderwindowsynchronized的 
     #然后page.main.clear()再 page.main.append(vtk_pane)
@@ -134,6 +132,7 @@ def gen_vtk(event):
     assert isinstance(vtk_pane, VTKRenderWindowSynchronized)
     vtk_pane.object = render_window
     time.sleep(0.1) #等待渲染器更新
+    notification('success',"已生成梁几何体")
     reset_camera(None)
     #To Do:刷新！为什么不能做到！
 
@@ -159,11 +158,10 @@ def num_correct(event):
     step = event.obj.step
     factor = 10e-5 * step
     event.obj.value = round(event.obj.value / step) * step
-    Dprint(round(event.obj.value / step))
     #取值范围
     if event.obj.value < 0:
         event.obj.value = 0
-        notification('warning',f"{event.obj.name}不能为负数，已重置为0")
+        notification('warning',f"{event.obj.name.split('/')[0]}不能为负数，已重置为0")
         return
     
 width_input.param.watch(num_correct,'value')
@@ -284,16 +282,19 @@ page.main.append(
 # )
 
 #endregion
-
-page.servable()
-
-pn.serve(
-    page,
-    port=5006,
-    allow_websocket_origin=["127.0.0.1:5006", "localhost:5006"],  
-    show=False,
+#region 网关部分
+app = FastAPI()
+server = pn.serve(
+        page,
+        port=5006,
+        show=False,
+        start=False
     )
+server.start()
 
-@app.get("/panel")
+@app.get("/visualbeam")
 def serve_panel():
-    return RedirectResponse(url="http://127.0.0.1:5006")
+    pass
+    
+
+#redregion

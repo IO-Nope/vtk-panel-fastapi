@@ -4,7 +4,8 @@ import utils
 from queue import Queue
 import vtkmodules.vtkRenderingCore
 
-# vtk有时会资源复用爆错 ，所以用单例模式管理
+# vtk有时会资源复用爆错 ，所以用单例模式管理，包揽计算任务
+#todo:支持缓存，多线程计算和显卡加速
 class VtkManager:
     '''
     VtkManager单例类用来管理vtk对象池,避免频繁创建和销毁vtk对象导致的资源浪费和性能问题。
