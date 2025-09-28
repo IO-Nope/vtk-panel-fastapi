@@ -6,6 +6,10 @@ import vtkmodules.vtkRenderingCore
 
 # vtk有时会资源复用爆错 ，所以用单例模式管理
 class VtkManager:
+    '''
+    VtkManager单例类用来管理vtk对象池,避免频繁创建和销毁vtk对象导致的资源浪费和性能问题。
+    todo: 拓展vtk对象类型 增加hash函数
+    '''
     __instance = None 
     __dicpool = {}
     __initialized = False

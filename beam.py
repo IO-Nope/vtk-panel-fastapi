@@ -1,3 +1,4 @@
+from os import name
 import re
 from fastapi import FastAPI, background
 from fastapi.responses import HTMLResponse
@@ -16,11 +17,25 @@ from utils import Dprint
 import vtk_core
 from typing import Optional
 import time
+import math
 
 app = FastAPI()
 #region 初始panel设置
 pn.extension('vtk',notifications=True)
 assert isinstance(pn.state.notifications, NotificationAreaBase)
+def notification(type='info',message:str = "This is a notification message",position='top-right',duration=3000):
+    assert isinstance(pn.state.notifications, NotificationAreaBase)
+    pn.state.notifications.position = position
+    if type == 'info':
+        pn.state.notifications.info(message,duration=duration)
+    elif type == 'warning':
+        pn.state.notifications.warning(message,duration=duration)
+    elif type == 'error':
+        pn.state.notifications.error(message,duration=duration)
+    elif type == 'success':
+        pn.state.notifications.success(message,duration=duration)
+    else:
+        pn.state.notifications.info(message+"未指定的提示类型",duration=duration)
 
 #endregion
 page = pn.template.FastListTemplate(title = "梁加载破坏可视化")
@@ -58,9 +73,12 @@ length_input = pn.widgets.FloatInput(name="跨度/m", value=5.0, step=1,sizing_m
 height_input = pn.widgets.FloatInput(name="梁高/m", value=0.5, step=0.1,sizing_mode='stretch_width')
 density_input = pn.widgets.FloatInput(name="重度/kN/m^2", value=25.0, step=1,sizing_mode='stretch_width')
 E_input = pn.widgets.FloatInput(name="弹性模量/MPa", value=20000.0, step=1000,sizing_mode='stretch_width')
+race_input = pn.widgets.FloatInput(name='加载速度/Mpa/s',value=0.1,step=0.01,sizing_mode='stretch_width')
+limnum_input =pn.widgets.IntInput(name="有限元数量",value=10,step=1,sizing_mode='stretch_width')
 factor_input = pn.Column(
     pn.Row(length_input, height_input,width_input,sizing_mode='stretch_width'),
     pn.Row(density_input,E_input,sizing_mode='stretch_width'),
+    pn.Row(race_input,limnum_input,sizing_mode='stretch_width')
 )
 
 #endregion
@@ -98,9 +116,7 @@ def gen_vtk(event):
         if last_beam_size[i] != [L,H,W][i]:
             break
     else:
-        assert isinstance(pn.state.notifications, NotificationAreaBase)
-        pn.state.notifications.position = 'top-right'
-        pn.state.notifications.error("参数并没有变化")
+        notification('error',"几何体尺寸未改变，无需重新生成")
         return
     
     last_beam_size = [L,H,W]
@@ -134,14 +150,31 @@ def reset_vtk(event):
     global vtk_pane
     global init_cam_pos
     if vtk_pane is None:
-        assert isinstance(pn.state.notifications, NotificationAreaBase)
-        pn.state.notifications.position = 'top-right'
-        pn.state.notifications.error("请先生成几何体")
+        notification('error',"请先生成梁几何体")
         return
     assert isinstance(vtk_pane, VTKRenderWindowSynchronized)
     
 buttonReset.on_click(reset_vtk)
 
+def num_correct(event):
+    #消除级小数误差
+    step = event.obj.step
+    factor = 10e-5 * step
+    event.obj.value = round(event.obj.value / step) * step
+    Dprint(round(event.obj.value / step))
+    #取值范围
+    if event.obj.value < 0:
+        event.obj.value = 0
+        notification('warning',f"{event.obj.name}不能为负数，已重置为0")
+        return
+    
+width_input.param.watch(num_correct,'value')
+length_input.param.watch(num_correct,'value')
+height_input.param.watch(num_correct,'value')
+density_input.param.watch(num_correct,'value')
+E_input.param.watch(num_correct,'value')
+race_input.param.watch(num_correct,'value')
+limnum_input.param.watch(num_correct,'value')
 
 
 #endregion
@@ -169,27 +202,20 @@ def print_camera_pos(event):
     global vtk_pane
     if vtk_pane is None:
         assert isinstance(pn.state.notifications, NotificationAreaBase)
-        pn.state.notifications.position = 'top-right'
-        pn.state.notifications.error("请先生成梁几何体")
+        notification('error',"请先生成几何体")
         return
     assert isinstance(vtk_pane, VTKRenderWindowSynchronized)
     camera = vtk_pane.camera
     assert isinstance(camera, dict)
     assert isinstance(pn.state.notifications, NotificationAreaBase)
-    pn.state.notifications.position = 'top-right'
-    pn.state.notifications.info(f"摄像机位置:")
-    pn.state.notifications.info(f"position: {camera['position']}",duration=10000)
-    pn.state.notifications.info(f"focal_point: {camera['focal_point']}",duration=10000)
-    pn.state.notifications.info(f"view_up: {camera['view_up']}",duration=10000)
+    notification('info',f"摄像机位置：{camera}")
+
 
 button_print_camera_pos.on_click(print_camera_pos)
 
 def function_test(event):
-    assert isinstance(pn.state.notifications, NotificationAreaBase)
-
-
-    pn.state.notifications.position = 'top-right'
-    pn.state.notifications.info("已成功触发测试功能")
+    
+    notification('info',"成功触发测试功能")
     pass
 button_function_test.on_click(function_test)
 
@@ -213,24 +239,24 @@ viewTab = pn.Column(
 def set_vtkbackground_color(value):
     global vtk_pane
     if vtk_pane is None:
-        assert isinstance(pn.state.notifications, NotificationAreaBase)
-        pn.state.notifications.position = 'top-right'
-        pn.state.notifications.error("请先生成几何体")
+        notification('error',"请先生成几何体")
         return
     assert isinstance(vtk_pane, VTKRenderWindowSynchronized)
     render =  vtk_pane.get_renderer()
     assert isinstance(render, vtkmodules.vtkRenderingCore.vtkRenderer)
     render.SetBackground(utils.hex_to_rgb(value)) #type:ignore
     vtk_pane.param.trigger('object') #显式更新
+    notification('info',f"已设置背景颜色为{value}")
 
 def reset_camera(event):
     global vtk_pane
     if vtk_pane is None:
-        #To Do:提示用户先生成
+        notification('error',"请先生成几何体")
         return
     assert isinstance(vtk_pane, VTKRenderWindowSynchronized)
     vtk_pane.camera = init_cam_pos
     vtk_pane.param.trigger('object')
+    notification('info',"已重置摄像机位置")
 
 button_camera_reset.on_click(reset_camera)
 
