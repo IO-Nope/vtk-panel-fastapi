@@ -124,8 +124,6 @@ def gen_vtk(event):
 
     render_window = vtk_core.VtkManager.Create_cube(length=W,width=L,height=H)
    
-    # ToDo : 添加加载力的箭头 这里的实现不行
-   
     #Issue: 这里本来是先判断page.main[0]是否为vtkrenderwindowsynchronized的 
     #然后page.main.clear()再 page.main.append(vtk_pane)
     #点击按钮后页面不更新
