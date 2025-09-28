@@ -4,6 +4,8 @@ from fastapi.responses import HTMLResponse
 from numpy import isin
 import panel as pn
 from fastapi.responses import RedirectResponse
+from panel.io import notifications
+from panel.io.notifications import NotificationAreaBase
 from panel.pane.vtk.vtk import VTKRenderWindowSynchronized
 from panel.widgets.speech_to_text import Language
 import vtk
@@ -16,9 +18,11 @@ from typing import Optional
 import time
 
 app = FastAPI()
+#region 初始panel设置
+pn.extension('vtk',notifications=True)
+assert isinstance(pn.state.notifications, NotificationAreaBase)
 
-pn.extension('vtk')
-
+#endregion
 page = pn.template.FastListTemplate(title = "梁加载破坏可视化")
 vtk_pane = pn.pane.VTK(vtk_core.VtkManager.Create_vtk(type='cube',length=5.0,width=0.5,height=0.5),sizing_mode='stretch_both')
 
@@ -94,7 +98,9 @@ def gen_vtk(event):
         if last_beam_size[i] != [L,H,W][i]:
             break
     else:
-        #Todo: 告诉用户没有修改参数
+        assert isinstance(pn.state.notifications, NotificationAreaBase)
+        pn.state.notifications.position = 'top-right'
+        pn.state.notifications.error("参数并没有变化")
         return
     
     last_beam_size = [L,H,W]
@@ -128,7 +134,9 @@ def reset_vtk(event):
     global vtk_pane
     global init_cam_pos
     if vtk_pane is None:
-        #To Do:提示用户先生成
+        assert isinstance(pn.state.notifications, NotificationAreaBase)
+        pn.state.notifications.position = 'top-right'
+        pn.state.notifications.error("请先生成几何体")
         return
     assert isinstance(vtk_pane, VTKRenderWindowSynchronized)
     
@@ -153,28 +161,44 @@ button_camera_reset = pn.widgets.Button(name = '重置摄像机',sizing_mode='st
 
 #region developtab
 button_print_camera_pos = pn.widgets.Button(name = '打印摄像机位置',sizing_mode='stretch_width')
+button_function_test = pn.widgets.Button(name = '测试功能',sizing_mode='stretch_width')
 
 #region 回调函数
 
 def print_camera_pos(event):
     global vtk_pane
     if vtk_pane is None:
-        #To Do: 提示没有vtk对象
+        assert isinstance(pn.state.notifications, NotificationAreaBase)
+        pn.state.notifications.position = 'top-right'
+        pn.state.notifications.error("请先生成梁几何体")
         return
     assert isinstance(vtk_pane, VTKRenderWindowSynchronized)
     camera = vtk_pane.camera
     assert isinstance(camera, dict)
-    Dprint("摄像机位置:")
-    Dprint(f"position: {camera['position']}")
-    Dprint(f"focal_point: {camera['focal_point']}")
-    Dprint(f"view_up: {camera['view_up']}")
+    assert isinstance(pn.state.notifications, NotificationAreaBase)
+    pn.state.notifications.position = 'top-right'
+    pn.state.notifications.info(f"摄像机位置:")
+    pn.state.notifications.info(f"position: {camera['position']}",duration=10000)
+    pn.state.notifications.info(f"focal_point: {camera['focal_point']}",duration=10000)
+    pn.state.notifications.info(f"view_up: {camera['view_up']}",duration=10000)
 
 button_print_camera_pos.on_click(print_camera_pos)
+
+def function_test(event):
+    assert isinstance(pn.state.notifications, NotificationAreaBase)
+
+
+    pn.state.notifications.position = 'top-right'
+    pn.state.notifications.info("已成功触发测试功能")
+    pass
+button_function_test.on_click(function_test)
+
 
 #endregion
 
 devtab = pn.Column(
     button_print_camera_pos,
+    button_function_test,
 )
 #endregion
 
@@ -189,7 +213,9 @@ viewTab = pn.Column(
 def set_vtkbackground_color(value):
     global vtk_pane
     if vtk_pane is None:
-        #Todo: 提示没有vtk对象
+        assert isinstance(pn.state.notifications, NotificationAreaBase)
+        pn.state.notifications.position = 'top-right'
+        pn.state.notifications.error("请先生成几何体")
         return
     assert isinstance(vtk_pane, VTKRenderWindowSynchronized)
     render =  vtk_pane.get_renderer()
@@ -214,7 +240,7 @@ page.sidebar.append(
     pn.Tabs(
         ('功能', functionTab),
         ('视图', viewTab),
-        ('开发功能', devtab)
+        ('开发者功能', devtab)
     )
 )
 
