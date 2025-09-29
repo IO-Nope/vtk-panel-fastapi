@@ -50,8 +50,10 @@ vtk_pane = pn.pane.VTK(vtk_core.VtkManager.Create_vtk(type='cube',length=5.0,wid
 renderer = vtk_pane.object.GetRenderers().GetFirstRenderer() #type:ignore
 assert isinstance(renderer, vtkmodules.vtkRenderingCore.vtkRenderer)
 initial_camera = renderer.GetActiveCamera()
-
 init_cam_pos = {'position': [10, 0, 0], 'focalPoint': [0, 0, 0], 'viewUp': [0, 1, 0], 'parallelProjection': False, 'useHorizontalViewAngle': False, 'viewAngle': 30, 'parallelScale': 1, 'clippingRange': [9.353450634738618, 10.837993045215962], 'windowCenter': [0, 0], 'useOffAxisProjection': False, 'screenBottomLeft': [-0.5, -0.5, -0.5], 'screenBottomRight': [0.5, -0.5, -0.5], 'screenTopRight': [0.5, 0.5, -0.5], 'freezeFocalPoint': False, 'projectionMatrix': None, 'viewMatrix': None, 'physicalTranslation': [0, 0, 0], 'physicalScale': 1, 'physicalViewUp': [0, 1, 0], 'physicalViewNorth': [0, 0, -1], 'mtime': 1010, 'remoteId': '0000018facbaa370', 'distance': 10, 'focal_point': [2.5, 0.25, 0], 'view_up': [0, 1, 0]}
+is_running = False
+
+
 
 
 assert isinstance(vtk_pane, VTKRenderWindowSynchronized)
@@ -137,6 +139,24 @@ def gen_vtk(event):
     #To Do:刷新！为什么不能做到！
 
 buttonGen.on_click(gen_vtk)
+
+def process_vtk(event):
+    notification('info',"开始加载")
+    #todo:开始加载并展示动画
+    notification('error',"功能开发中，敬请期待")
+    pass
+buttonProcess.on_click(process_vtk)
+
+
+def stopkeepon_vtk(event):
+    notification('error',"功能开发中，敬请期待")
+    pass
+buttonStopKeepon.on_click(stopkeepon_vtk)
+
+def resert_vtk(event):
+    notification('error',"功能开发中，敬请期待")
+    pass
+buttonReset.on_click(resert_vtk)
 
 def flash_vtk(event):
     global vtk_pane
