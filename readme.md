@@ -65,3 +65,5 @@ Or
 - [ ] vtkmanager的缓存功能存在严重缺陷 应该添加一个hash方法
 - [x] 并不能真正做到用到fastapi！
 > 算是做到了吧.
+- [x] 调用vtkrenderinteracter的start方法后deadlock
+> 由于并非单独vtk运用 此方法会进入vtk的事件循环直到调用terminateApp() 在web场景中不适用 转而寻求panel的解决方法

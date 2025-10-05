@@ -95,8 +95,8 @@ class VtkManager:
         render_window.AddRenderer(renderer)
 
         # 创建 VTK 渲染窗口交互器
-        render_window_interactor = vtkmodules.vtkRenderingCore.vtkRenderWindowInteractor()
-        render_window_interactor.SetRenderWindow(render_window)
+        # render_window_interactor = vtkmodules.vtkRenderingCore.vtkRenderWindowInteractor()
+        # render_window_interactor.SetRenderWindow(render_window)
 
         return render_window
 
@@ -120,3 +120,17 @@ class VtkManager:
                 render_window = instance.Create_cube()
         instance.__dicpool[type] = render_window
         return render_window
+    
+    #todo:一个效果器 要提供一个和有限元计算对接的接口，自适应的时间更新
+class vtkeffector():
+    '''
+    vtk指定actor效果器，update是更新函数
+    '''
+    def __init__(self, steps, actor, iren):
+        self.timer_count = 0
+        self.steps = steps
+        self.actor = actor
+        self.iren = iren
+    
+    def update(self,obj,event):
+        pass

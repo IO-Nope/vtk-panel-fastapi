@@ -10,6 +10,7 @@ from panel.io.notifications import NotificationAreaBase
 from panel.pane.vtk.vtk import VTKRenderWindowSynchronized
 from panel.template import DarkTheme
 from panel.widgets.speech_to_text import Language
+from vtkmodules.vtkRenderingCore import vtkRenderWindow, vtkRenderer, vtkActor, vtkPolyDataMapper
 import vtk
 import vtkmodules
 import vtkmodules.vtkRenderingCore
@@ -200,54 +201,10 @@ functionTab = pn.Column(
 )
 #endregion
 #region 视图栏
-
-#region 视图
+#region 视图控件
 background_colorpick = pn.widgets.ColorPicker(name='背景颜色', value='#FFFFFF',sizing_mode='stretch_width')
 button_camera_reset = pn.widgets.Button(name = '重置摄像机',sizing_mode='stretch_width')
 
-
-#endregion
-
-#region developtab
-button_print_camera_pos = pn.widgets.Button(name = '打印摄像机位置',sizing_mode='stretch_width')
-button_function_test = pn.widgets.Button(name = '测试功能',sizing_mode='stretch_width')
-
-#region 回调函数
-
-def print_camera_pos(event):
-    global vtk_pane
-    if vtk_pane is None:
-        assert isinstance(pn.state.notifications, NotificationAreaBase)
-        notification('error',"请先生成几何体")
-        return
-    assert isinstance(vtk_pane, VTKRenderWindowSynchronized)
-    camera = vtk_pane.camera
-    assert isinstance(camera, dict)
-    assert isinstance(pn.state.notifications, NotificationAreaBase)
-    notification('info',f"摄像机位置：{camera}")
-
-
-button_print_camera_pos.on_click(print_camera_pos)
-
-def function_test(event):
-    
-    notification('info',"成功触发测试功能")
-    pass
-button_function_test.on_click(function_test)
-
-
-#endregion
-
-devtab = pn.Column(
-    button_print_camera_pos,
-    button_function_test,
-)
-#endregion
-
-viewTab = pn.Column(
-    button_camera_reset,
-    background_colorpick,
-)
 
 #endregion
 #region 回调函数
@@ -277,6 +234,49 @@ def reset_camera(event):
 button_camera_reset.on_click(reset_camera)
 
 #endregion
+
+viewTab = pn.Column(
+    button_camera_reset,
+    background_colorpick,
+)
+
+#endregion
+#region 开发者功能栏
+button_print_camera_pos = pn.widgets.Button(name = '打印摄像机位置',sizing_mode='stretch_width')
+button_function_test = pn.widgets.Button(name = '测试功能',sizing_mode='stretch_width')
+
+#region 回调函数
+
+def print_camera_pos(event):
+    global vtk_pane
+    if vtk_pane is None:
+        assert isinstance(pn.state.notifications, NotificationAreaBase)
+        notification('error',"请先生成几何体")
+        return
+    assert isinstance(vtk_pane, VTKRenderWindowSynchronized)
+    camera = vtk_pane.camera
+    assert isinstance(camera, dict)
+    assert isinstance(pn.state.notifications, NotificationAreaBase)
+    notification('info',f"摄像机位置：{camera}")
+button_print_camera_pos.on_click(print_camera_pos)
+
+
+
+
+def function_test(event):
+
+    notification('info',"成功触发测试功能")
+button_function_test.on_click(function_test)
+
+
+#endregion
+
+devtab = pn.Column(
+    button_print_camera_pos,
+    button_function_test,
+)
+#endregion
+
 assert isinstance(page.sidebar,pn.layout.base.ListLike)
 page.sidebar.append(
     pn.Tabs(
@@ -316,18 +316,36 @@ server.start()
 def serve_root():
     html = """
     <!DOCTYPE html>
-    <html lang="en">
+    <html lang="en" style="height:100%;">
     <head>
         <meta charset="UTF-8">
         <meta name="viewport" content="width=device-width, initial-scale=1.0">
         <title>Panel App</title>
+        <style>
+            html, body {
+                height: 100%;
+                margin: 0;
+                padding: 0;
+            }
+            body {
+                height: 100%;
+                width: 100%;
+                overflow: hidden;
+            }
+            iframe {
+                height: 100%;
+                width: 100%;
+                border: none;
+                display: block;
+            }
+        </style>
     </head>
     <body>
-        <iframe src="http://localhost:5006" width="100%" height="800px" frameborder="0"></iframe>
+        <iframe src="http://localhost:5006"></iframe>
     </body>
     </html>
     """
     return HTMLResponse(content=html)
     
 
-#redregion
+#endregion
