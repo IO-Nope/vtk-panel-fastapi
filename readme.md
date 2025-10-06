@@ -67,3 +67,7 @@ Or
 > 算是做到了吧.
 - [x] 调用vtkrenderinteracter的start方法后deadlock
 > 由于并非单独vtk运用 此方法会进入vtk的事件循环直到调用terminateApp() 在web场景中不适用 转而寻求panel的解决方法
+- [x] 现在的服务是非并发的 我们需要并发的服务器来支持多个用户访问
+> 封装整个page,少用global,所以要重写成类形式的,已完工在beampage
+- [x] 封装成一个beampage类之后notification莫名其妙失效了？？？
+> 把pn.extension(notification=true)从init里面拿出来，放到最前面
