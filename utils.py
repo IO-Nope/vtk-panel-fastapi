@@ -6,7 +6,8 @@ import vtk
 from panel.pane import VTK
 import utils
 import io
-
+import numpy as np
+import math
 global isDebug
 isDebug = True
 
@@ -127,3 +128,43 @@ def Dprint(*args, **kwargs):
     if isDebug:
         print(*args, **kwargs)
 
+def Choose_element_grid(n_elements:int,L:float,W:float,H:float):
+    sum = L + W + H
+    if sum == 0 or n_elements <= 0:
+        return (1,1,1)
+    factor = np.cbrt((n_elements-1)/(L*W*H))
+    nx = math.floor(L*factor)
+    ny = math.floor(W*factor)
+    nz = math.floor(H*factor)
+    return (max(1,nx),max(1,ny),max(1,nz))
+
+def gen_mesh_from_elements(n_elements:int,L:float,W:float,H:float):
+    nx_e,ny_e,nz_e = Choose_element_grid(n_elements,L,W,H)
+    nx = nx_e + 1
+    ny = ny_e + 1
+    nz = nz_e + 1
+
+    coords = []
+    
+    for k in range(nz):
+        z = H * k / (nz - 1) if nz > 1 else 0
+        for j in range(ny):
+            y = W * j / (ny - 1) if ny > 1 else 0
+            for i in range(nx):
+                x = L * i / (nx - 1) if nx > 1 else 0
+                coords.append((x, y, z))
+
+    elements = []
+    for k in range(nz_e):
+        for j in range(ny_e):
+            for i in range(nx_e):
+                n0 = i + j * nx + k * nx * ny
+                n1 = (i + 1) + j * nx + k * nx * ny
+                n2 = (i + 1) + (j + 1) * nx + k * nx * ny
+                n3 = i + (j + 1) * nx + k * nx * ny
+                n4 = i + j * nx + (k + 1) * nx * ny
+                n5 = (i + 1) + j * nx + (k + 1) * nx * ny
+                n6 = (i + 1) + (j + 1) * nx + (k + 1) * nx * ny
+                n7 = i + (j + 1) * nx + (k + 1) * nx * ny
+                elements.append((n0, n1, n2, n3, n4, n5, n6, n7))
+    return coords, elements

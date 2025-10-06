@@ -34,16 +34,16 @@ def notification(type='info',message:str = "This is a notification message",posi
 
 class BeamPage:
     page = pn.template.MaterialTemplate(title='素混凝土梁四点加载可视化',theme=DarkTheme)
-    __vtk_pane = pn.pane.VTK(vtk_core.VtkManager.Create_vtk(type='cube',length=5.0,width=0.5,height=0.5),sizing_mode='stretch_both')
+    __vtk_pane = pn.pane.VTK(vtk_core.VtkManager.Create_vtk(type='mesh',length=5.0,width=0.5,height=0.5,n_elem=10),sizing_mode='stretch_both')
     __init_campos = {
-        'position': [10, 0, 0],
-        'focalPoint': [0, 0, 0], 
+        'position': [2.5, 0.25, 10.005372652697917], 
+        'focalPoint': [2.5, 0.25, 0.25], 
         'viewUp': [0, 1, 0], 
         'parallelProjection': False, 
         'useHorizontalViewAngle': False, 
         'viewAngle': 30, 
         'parallelScale': 1, 
-        'clippingRange': [9.353450634738618, 10.837993045215962], 
+        'clippingRange': [9.124313553240633, 10.573276588815226], 
         'windowCenter': [0, 0], 
         'useOffAxisProjection': False, 
         'screenBottomLeft': [-0.5, -0.5, -0.5], 
@@ -56,14 +56,12 @@ class BeamPage:
         'physicalScale': 1, 
         'physicalViewUp': [0, 1, 0], 
         'physicalViewNorth': [0, 0, -1], 
-        'mtime': 1010, 
-        'remoteId': '0000018facbaa370', 
-        'distance': 10, 
-        'focal_point': [2.5, 0.25, 0], 
-        'view_up': [0, 1, 0]
+        'mtime': 49, 
+        'remoteId': '00000214ab4e9be0', 
+        'distance': 9.755372652697917
         }
     __is_running = False
-    __last_beam_size = [5.0,0.5,0.5] #L,H,W
+    __last_beam_size = [5.0,0.5,0.5,10] #L,H,W,n_elem
     __widgets = {}
     __precision = 5
     def __func_tab_init(self):
@@ -187,13 +185,14 @@ class BeamPage:
 
     def __main_init(self):
         assert isinstance(self.page.main,pn.layout.base.ListLike)
+        self.__vtk_pane.object.GetRenderers().GetFirstRenderer().SetBackground(utils.hex_to_rgb('#FFFFFF')) #type:ignore
         self.page.main.append(
             self.__vtk_pane
         )
         Dprint('Info:Beam page main area initialized.')
         
-
     def __bind_events(self):
+        #region 别名
         background_colorpick = self.__widgets.get('background_colorpick',None)
         button_camera_reset = self.__widgets.get('button_camera_reset',None)
         vtk_pane = self.__vtk_pane
@@ -212,7 +211,7 @@ class BeamPage:
         limnum_input = self.__widgets.get('limnum',None)
         button_print_camera_pos = self.__widgets.get('button_print_camera_pos',None)
         button_function_test = self.__widgets.get('button_function_test',None)
-
+        #endregion
         #region 变量断言
         assert isinstance(vtk_pane, VTKRenderWindowSynchronized)
         assert isinstance(background_colorpick, pn.widgets.ColorPicker)
@@ -266,21 +265,25 @@ class BeamPage:
             W = width_input.value
             L = length_input.value
             H = height_input.value
+            N = limnum_input.value
             assert isinstance(L, (int,float))
             assert isinstance(H, (int,float))
             assert isinstance(W, (int,float))
+            assert isinstance(N, int)
             #pylance闹麻
 
-            for i in range(3):
-                if self.__last_beam_size[i] != [L,H,W][i]:
+            for i in range(len(self.__last_beam_size)):
+                if self.__last_beam_size[i] != [L,H,W,N][i]:
                     break
             else:
-                notification('error',"几何体尺寸未改变，无需重新生成")
+                notification('error',"几何体尺寸与有限元数量未改变，无需重新生成")
                 return
 
-            self.__last_beam_size = [L,H,W]
+            self.__last_beam_size = [L,H,W,N]
+            assert isinstance(limnum_input.value,int)
+            #todo:在这计算stress
 
-            render_window = vtk_core.VtkManager.Create_cube(length=L,width=W,height=H)
+            render_window = vtk_core.VtkManager.Create_vtk(type='mesh',length=L,width=W,height=H,n_elem=N)
         
             #Issue: 这里本来是先判断page.main[0]是否为vtkrenderwindowsynchronized的 
             #然后page.main.clear()再 page.main.append(vtk_pane)
@@ -390,7 +393,6 @@ class BeamPage:
         button_function_test.on_click(function_test)
         #endregion
 
-        pass
     def __init__(self):
         self.__sidebar_init()
         self.__main_init()

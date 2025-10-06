@@ -3,6 +3,7 @@ import vtk
 import utils
 from queue import Queue
 import vtkmodules.vtkRenderingCore
+import math
 
 # vtk有时会资源复用爆错 ，所以用单例模式管理，包揽计算任务
 #todo:支持缓存，多线程计算和显卡加速
@@ -17,13 +18,16 @@ class VtkManager:
     __maxobject = 5
     __logout = Queue(maxsize=__maxobject)
     __count = 0
-    
+
+
+
+
+
     @classmethod
     def Instance(cls):
         if cls.__instance is None:
             cls.__instance = VtkManager()
         return cls.__instance
-    
     
     def __new__(cls):
         if cls.__instance is None:
@@ -47,8 +51,7 @@ class VtkManager:
         if self.__count <= 0:
             if VtkManager.__instance is not None:
                 VtkManager.Instance().__dicpool.clear()
-            
-    
+               
     @classmethod
     def Get_type(cls,type:str):
         instance = cls.Instance()
@@ -101,7 +104,7 @@ class VtkManager:
         return render_window
 
     @classmethod
-    def Create_vtk(cls,type = 'Any',length=5.0,width=5.0,height=5.0,radius=5.0):
+    def Create_vtk(cls,type = 'Any',length=5.0,width=5.0,height=5.0,radius=5.0,n_elem=10,pdata=None):
         instance = cls.Instance()
         if type in instance.__dicpool:
             return instance.__dicpool[type]
@@ -116,12 +119,54 @@ class VtkManager:
                 render_window = utils.Create_vtk_sphere()
             case 'cube':
                 render_window = instance.Create_cube(length,width,height)
+            case 'mesh':
+                coords, elements = utils.gen_mesh_from_elements(n_elem,length,width,height)
+                render_window = instance.build_vtk_from_mesh(coords, elements, point_data=pdata)  
             case any:
                 render_window = instance.Create_cube()
         instance.__dicpool[type] = render_window
         return render_window
     
-    #todo:一个效果器 要提供一个和有限元计算对接的接口，自适应的时间更新
+    @staticmethod
+    def build_vtk_from_mesh(coords, elements, point_data=None):
+        """
+        将 coords(节点坐标)、elements(8点索引列表) 转为 vtkRenderWindow（包含 actor）
+        point_data: 可选 list/np.array，对应每个节点的标量场（如应力）
+        返回 vtkRenderWindow
+        """
+        points = vtk.vtkPoints()
+        for p in coords:
+            points.InsertNextPoint(p)
+        ugrid = vtk.vtkUnstructuredGrid()
+        ugrid.SetPoints(points)
+        for elm in elements:
+            hex_cell = vtk.vtkHexahedron()
+            for idx_local, pid in enumerate(elm):
+                hex_cell.GetPointIds().SetId(idx_local, int(pid))
+            ugrid.InsertNextCell(hex_cell.GetCellType(), hex_cell.GetPointIds())
+        if point_data is not None:
+            arr = vtk.vtkFloatArray()
+            arr.SetName("Scalar")
+            for v in point_data:
+                arr.InsertNextValue(float(v))
+            ugrid.GetPointData().AddArray(arr)
+            ugrid.GetPointData().SetActiveScalars("Scalar")
+        # mapper/actor/renderer -> render window
+        mapper = vtk.vtkDataSetMapper()
+        mapper.SetInputData(ugrid)
+        if point_data is not None:
+            mapper.SetScalarRange(min(point_data), max(point_data))
+        actor = vtk.vtkActor()
+        actor.SetMapper(mapper)
+        actor.GetProperty().EdgeVisibilityOn()
+        renderer = vtk.vtkRenderer()
+        renderer.AddActor(actor)
+        renwin = vtk.vtkRenderWindow()
+        renwin.AddRenderer(renderer)
+        return renwin
+    
+
+#todo:一个效果器 要提供一个和有限元计算对接的接口，自适应的时间更新
 class vtkeffector():
     '''
     vtk指定actor效果器，update是更新函数
