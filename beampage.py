@@ -360,35 +360,33 @@ class BeamPage:
             notification('info',f"摄像机位置：{camera}")
         button_print_camera_pos.on_click(print_camera_pos)
 
-        animation_state = {"running": False, "color_value": 0.0, "increment": 0.01}
+        # animation_state = {"running": False, "color_value": 0.0, "increment": 0.01}
 
-        def animate_vtk():
-            if animation_state["running"]:
-                # 颜色渐变（红到蓝）
-                animation_state["color_value"] += animation_state["increment"]
-                if animation_state["color_value"] > 1.0 or animation_state["color_value"] < 0.0:
-                    animation_state["increment"] *= -1
-                    animation_state["color_value"] += animation_state["increment"]
-                r = 1.0 - animation_state["color_value"]
-                g = 0.0
-                b = animation_state["color_value"]
-                # 获取第一个actor并设置颜色
-                assert isinstance(vtk_pane, VTKRenderWindowSynchronized)
-                assert isinstance(vtk_pane.object,vtkRenderWindow)
-                renderer = vtk_pane.object.GetRenderers().GetFirstRenderer()
-                actor = renderer.GetActors().GetLastActor()
-                actor.GetProperty().SetColor(r, g, b)
-                vtk_pane.param.trigger('object')  # 刷新显示
+        # def animate_vtk():
+        #     if animation_state["running"]:
+        #         # 颜色渐变（红到蓝）
+        #         animation_state["color_value"] += animation_state["increment"]
+        #         if animation_state["color_value"] > 1.0 or animation_state["color_value"] < 0.0:
+        #             animation_state["increment"] *= -1
+        #             animation_state["color_value"] += animation_state["increment"]
+        #         r = 1.0 - animation_state["color_value"]
+        #         g = 0.0
+        #         b = animation_state["color_value"]
+        #         # 获取第一个actor并设置颜色
+        #         assert isinstance(vtk_pane, VTKRenderWindowSynchronized)
+        #         assert isinstance(vtk_pane.object,vtkRenderWindow)
+        #         renderer = vtk_pane.object.GetRenderers().GetFirstRenderer()
+        #         actor = renderer.GetActors().GetLastActor()
+        #         actor.GetProperty().SetColor(r, g, b)
+        #         vtk_pane.param.trigger('object')  # 刷新显示
 
-        cb = pn.state.add_periodic_callback(animate_vtk, period=50)
-        cb.stop()  # 初始时停止动画
-
+        # cb = pn.state.add_periodic_callback(animate_vtk, period=50)
+        # cb.stop()  # 初始时停止动画
+        def test():
+            print(1)
+        timer = vtk_core.NNtimer(eff = test)
         def function_test(event):
-            animation_state["running"] = not animation_state["running"]
-            if animation_state["running"]:
-                cb.start()
-            else:
-                cb.stop()
+            timer.Start()
             notification('info',"成功触发测试功能")
         button_function_test.on_click(function_test)
         #endregion

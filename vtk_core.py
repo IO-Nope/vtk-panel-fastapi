@@ -4,6 +4,9 @@ import utils
 from queue import Queue
 import vtkmodules.vtkRenderingCore
 import math
+import threading
+import time
+from typing import Union,Callable
 
 # vtk有时会资源复用爆错 ，所以用单例模式管理，包揽计算任务
 #todo:支持缓存，多线程计算和显卡加速
@@ -167,15 +170,119 @@ class VtkManager:
     
 
 #todo:一个效果器 要提供一个和有限元计算对接的接口，自适应的时间更新
-class vtkeffector():
+class Vtkeffector():
     '''
     vtk指定actor效果器，update是更新函数
+    #todo:实现一个效果器基类或者接口 让子类可以调用update
     '''
+
+
+
     def __init__(self, steps, actor, iren):
-        self.timer_count = 0
         self.steps = steps
         self.actor = actor
         self.iren = iren
     
-    def update(self,obj,event):
+    def update(self):
         pass
+
+
+#todo:一个定时触发器
+
+class NNtimer:
+    '''
+    一个定时器的类，所有的时间请以秒为单位，eff是绑定的函数或者效果器，如果是效果器会默认调用update方法，
+    '''
+    __total_time : float
+    __cycle : float
+    __isloop : bool
+    __isrunning :bool
+    __close : bool
+
+
+    __timer : float #内置计时器
+    __effector : Union[Callable,Vtkeffector]
+
+    __lock = threading.Lock()
+    __runcond = threading.Condition()
+    #两个锁，有点蠢，不确定，再看看
+
+
+
+    def __init__(self,eff:Union[Callable,Vtkeffector],total_time = 10, cycle = 0.5, isloop = False):
+        self.__total_time = total_time
+        self.__cycle = cycle
+        self.__effector = eff
+        self.__isloop = isloop
+        self.__close = False
+        self.__timer = 0
+        self.__isrunning = True
+
+    def __tar(self):
+        while(1):
+            start_real = time.perf_counter()
+
+            if isinstance(self.__effector,Vtkeffector):
+                self.__effector.update()
+            else : 
+                self.__effector()
+            
+            end_real = time.perf_counter()
+            pass_time  = end_real - start_real
+
+            add_time = 0
+            if pass_time < self.__cycle:
+                last_time = self.__cycle - pass_time
+                add_time = self.__cycle
+            else:
+                last_time =0
+                print("Warn: NNtimer can't Keep up!")
+                add_time= pass_time
+
+            with self.__lock:
+                self.__timer+=add_time
+            
+            if not self.__isloop :
+                if self.__timer>= self.__total_time:
+                    break
+            with self.__lock:
+                temp = self.__isrunning
+            #避免两个锁一起用导致deadlock
+
+
+            if not temp :
+                self.__runcond.wait()
+                if self.__close:
+                    self.__close = False
+                    break
+            
+            
+            time.sleep(last_time)
+
+            
+
+
+    def Start(self):
+        if not self.__isrunning:
+            self.__runcond.notify_all()
+            self.__isrunning = True
+        if not self.__timer :
+            return
+        threading.Thread(target=self.__tar)
+
+    def Stop(self):
+        with self.__lock:
+            self.__isrunning = False
+
+    def Reset(self):
+        with self.__lock:
+            self.__isrunning=False
+            self.__timer = 0
+            self.__close = True
+
+    def __del__(self):
+        pass
+
+
+
+
