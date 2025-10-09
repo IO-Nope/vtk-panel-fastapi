@@ -265,10 +265,12 @@ class NNtimer:
     def Start(self):
         if not self.__isrunning:
             self.__runcond.notify_all()
+            #可能有问题
             self.__isrunning = True
-        if not self.__timer :
+        if self.__timer :
             return
-        threading.Thread(target=self.__tar)
+        t=threading.Thread(target=self.__tar)
+        t.start()
 
     def Stop(self):
         with self.__lock:
